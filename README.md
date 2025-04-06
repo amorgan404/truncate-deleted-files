@@ -48,7 +48,7 @@ chmod +x cleanup_deleted_files.sh
 ### Basic Usage
 
 ```bash
-./cleanup_deleted_files.sh
+sudo ./cleanup_deleted_files.sh
 ```
 
 ### 🧪 Dry-run Mode
@@ -56,7 +56,7 @@ chmod +x cleanup_deleted_files.sh
 To simulate the action without truncating any files:
 
 ```bash
-./cleanup_deleted_files.sh --dry-run
+sudo ./cleanup_deleted_files.sh --dry-run
 ```
 
 You'll see output like:
