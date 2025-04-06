@@ -3,27 +3,44 @@
 # Script Name: truncate_deleted_files.sh
 # Author: Ahmed Morgan
 # Description: This script identifies and truncates deleted
-#             files that are still being held by processes,
-#             freeing up disk space without restarting services.
+#              files that are still being held by processes,
+#              freeing up disk space without restarting services.
+# Supports     --dry-run to preview affected files before
+#              performing truncation.
 # ------------------------------------------------------
+SCRIPT_PID=$$
+DRY_RUN=false
 
-echo "Scanning for deleted files consuming space..."
-
-# Get the list of processes with deleted open files
-DELETED_FILES=$(lsof | grep deleted | awk '{print $2, $4}' | sed 's/[a-z]$//')
-
-if [[ -z "$DELETED_FILES" ]]; then
-    echo "No deleted files consuming space."
-    exit 0
+# Enable dry-run if passed as argument
+if [ "$1" == "--dry-run" ]; then
+    DRY_RUN=true
+    echo "🧪 Dry-run mode enabled. No files will be truncated."
 fi
 
-# Process each PID and FD
-while read -r PID FD; do
-    FILE_PATH="/proc/$PID/fd/$FD"
-    if [[ -e "$FILE_PATH" ]]; then
-        echo "Truncating: $FILE_PATH"
-        > "$FILE_PATH"
+# Get list of deleted files held by java processes
+lsof -nP | grep '(deleted)' | grep java | awk '{print $2, $4}' | while read -r PID FD; do
+    # Skip if PID is invalid or matches this script
+    [[ "$PID" =~ ^[0-9]+$ ]] || continue
+    if [ "$PID" -eq "$SCRIPT_PID" ]; then
+        continue
     fi
-done <<< "$DELETED_FILES"
 
-echo "Deleted files have been truncated successfully."
+    # Extract numeric file descriptor only
+    FD_NUM=$(echo "$FD" | sed -n 's/^\([0-9]\+\)[rwu]*$/\1/p')
+
+    # Skip if FD_NUM is empty (invalid format)
+    if [ -z "$FD_NUM" ]; then
+        continue
+    fi
+
+    FD_PATH="/proc/$PID/fd/$FD_NUM"
+
+    if [ -e "$FD_PATH" ] && [ ! -d "$FD_PATH" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo "Would truncate: $FD_PATH"
+        else
+            echo "Truncating: $FD_PATH"
+            : > "$FD_PATH"
+        fi
+    fi
+done

@@ -34,7 +34,7 @@ When a file is deleted in Linux while a process still has it open, the file syst
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/truncate-deleted-files.git
+git clone https://github.com/amorgan404/truncate-deleted-files.git
 
 # Navigate to the directory
 cd truncate-deleted-files
